@@ -57,11 +57,6 @@ cp -r . ~/.local/share/gnome-shell/extensions/dynamic-panel@vmelonn/
 gnome-extensions enable dynamic-panel@vmelonn
 ```
 
-### Quick Install Script
-```bash
-curl -fsSL https://raw.githubusercontent.com/vmelonn/dynamic-panel-transparency/main/install.sh | bash
-```
-
 ## ⚙️ Configuration
 
 Access settings through:
