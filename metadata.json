@@ -1,8 +1,10 @@
 {
-  "uuid": "dynamic-panel@custom",
+  "uuid": "dynamic-panel@vmelonn",
   "name": "Dynamic Panel Transparency",
-  "description": "Makes the top panel transparent when no windows are open, opaque when windows are present", 
+  "description": "Intelligently adjusts the top panel's transparency based on window states - transparent when no windows are open, semi-opaque when windows are present, and fully opaque in fullscreen mode. Highly configurable with smooth animations.",
+  "version": 5,
   "shell-version": ["46"],
-  "version": 4,
-  "url": ""
+  "url": "https://github.com/vmelonn/dynamic-panel-transparency",
+  "settings-schema": "org.gnome.shell.extensions.dynamic-panel",
+  "gettext-domain": "dynamic-panel-transparency"
 }
