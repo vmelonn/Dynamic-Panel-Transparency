@@ -18,8 +18,8 @@
 
 ## 📸 Screenshots
 
-| Transparent (No Windows) | Semi-Opaque (Windows Present) | Settings Panel |
-|--------------------------|-------------------------------|----------------|
+| Transparent (No Windows) | Semi-Opaque (Windows Present) | Opaque (Full Screen)          | Settings Panel |
+|--------------------------|-------------------------------|-------------------------------|----------------|
 | ![Transparent](screenshots/transparent.png) | ![Semi-opaque](screenshots/semi_opaque.png) | ![Opaque](screenshots/opaque.png) | ![Settings](screenshots/settings.png) |
 
 ## 🎛️ How It Works
