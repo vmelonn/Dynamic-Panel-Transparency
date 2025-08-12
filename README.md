@@ -212,6 +212,5 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ---
 
 <p align="center">
-  <strong>Made with ❤️ for the GNOME community</strong><br>
-  <sub>If this extension improved your desktop experience, consider giving it a ⭐!</sub>
+  <strong>I hope this satisfies some need.</strong><br>
 </p>
