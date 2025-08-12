@@ -4,7 +4,7 @@
 
 ![GNOME Shell 46](https://img.shields.io/badge/GNOME%20Shell-46-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-5.0.0-orange)
+![Version](https://img.shields.io/badge/version-1.0.0-orange)
 
 ## ✨ Features
 
@@ -112,7 +112,7 @@ journalctl -f -o cat /usr/bin/gnome-shell | grep "Dynamic Panel"
 
 ### Building from Source
 ```bash
-git clone https://github.com/yourusername/dynamic-panel-transparency.git
+git clone https://github.com/vmelonn/dynamic-panel-transparency.git
 cd dynamic-panel-transparency
 
 # Compile schemas
@@ -168,17 +168,15 @@ git push origin feature/amazing-new-feature
 ## 🆘 Support
 
 - 📖 **Documentation**: Check this README and inline comments
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/yourusername/dynamic-panel-transparency/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/yourusername/dynamic-panel-transparency/discussions)
-- 📧 **Direct Contact**: [your-email@example.com]
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/reemostat/dynamic-panel-transparency/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/reemostat/dynamic-panel-transparency/discussions)
+- 📧 **Direct Contact**: [rayan.atif2@gmail.com]
 
 ## 📋 Compatibility
 
 - **GNOME Shell**: 46+
 - **Tested On**: 
   - Ubuntu 24.04 LTS (GNOME 46)
-  - Fedora 40 (GNOME 46)
-  - Arch Linux (GNOME 46)
 
 ## 🗺️ Roadmap
 
