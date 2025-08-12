@@ -43,7 +43,7 @@ The extension intelligently switches between three states:
 ### Manual Installation
 ```bash
 # Download and install
-git clone https://github.com/yourusername/dynamic-panel-transparency.git
+git clone https://github.com/vmelonn/dynamic-panel-transparency.git
 cd dynamic-panel-transparency
 
 # Install using make
@@ -51,22 +51,22 @@ make install
 
 # Or copy manually
 mkdir -p ~/.local/share/gnome-shell/extensions/
-cp -r . ~/.local/share/gnome-shell/extensions/dynamic-panel@yourusername/
+cp -r . ~/.local/share/gnome-shell/extensions/dynamic-panel@vmelonn/
 
 # Enable the extension
-gnome-extensions enable dynamic-panel@yourusername
+gnome-extensions enable dynamic-panel@vmelonn
 ```
 
 ### Quick Install Script
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yourusername/dynamic-panel-transparency/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/vmelonn/dynamic-panel-transparency/main/install.sh | bash
 ```
 
 ## ⚙️ Configuration
 
 Access settings through:
 - **GNOME Extensions app** → Dynamic Panel Transparency → ⚙️ Settings
-- **Command line**: `gnome-extensions prefs dynamic-panel@yourusername`
+- **Command line**: `gnome-extensions prefs dynamic-panel@vmelonn`
 
 ### 🎨 Panel Transparency Settings
 
@@ -86,8 +86,8 @@ Access settings through:
 
 **Extension not working after GNOME update:**
 ```bash
-gnome-extensions disable dynamic-panel@yourusername
-gnome-extensions enable dynamic-panel@yourusername
+gnome-extensions disable dynamic-panel@vmelonn
+gnome-extensions enable dynamic-panel@vmelonn
 ```
 
 **Panel stuck in one state:**
@@ -149,7 +149,7 @@ Contributions are welcome! Here's how you can help:
 ### Development Setup
 ```bash
 # Fork the repo and clone your fork
-git clone https://github.com/yourusername/dynamic-panel-transparency.git
+git clone https://github.com/vmelonn/dynamic-panel-transparency.git
 cd dynamic-panel-transparency
 
 # Create a feature branch
@@ -205,9 +205,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📊 Stats
 
-![GitHub stars](https://img.shields.io/github/stars/yourusername/dynamic-panel-transparency?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/dynamic-panel-transparency?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/dynamic-panel-transparency)
+![GitHub stars](https://img.shields.io/github/stars/vmelonn/dynamic-panel-transparency?style=social)
+![GitHub forks](https://img.shields.io/github/forks/vmelonn/dynamic-panel-transparency?style=social)
+![GitHub issues](https://img.shields.io/github/issues/vmelonn/dynamic-panel-transparency)
 
 ---
 
