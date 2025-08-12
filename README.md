@@ -20,7 +20,7 @@
 
 | Transparent (No Windows) | Semi-Opaque (Windows Present) | Settings Panel |
 |--------------------------|-------------------------------|----------------|
-| ![Transparent](screenshots/transparent.png) | ![Semi-opaque](screenshots/semi-opaque.png) | ![Settings](screenshots/settings.png) |
+| ![Transparent](screenshots/transparent.png) | ![Semi-opaque](screenshots/semi_opaque.png) | ![Opaque](screenshots/opaque.png) | ![Settings](screenshots/settings.png) |
 
 ## 🎛️ How It Works
 
