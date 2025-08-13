@@ -95,7 +95,7 @@ export default class DynamicPanelPreferences extends ExtensionPreferences {
         // Enable debug logging
         const debugBox = this._createSwitchSetting(
             'Enable Debug Logging',
-            'Show detailed console output for troubleshooting (check with journalctl)',
+            'Show detailed console output for troubleshooting',
             settings,
             'debug-logging'
         );
