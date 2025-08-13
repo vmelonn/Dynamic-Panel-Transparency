@@ -3,7 +3,7 @@
 > A smart GNOME Shell extension that automatically adjusts the top panel's transparency based on your window activity
 
 ![GNOME Shell 46](https://img.shields.io/badge/GNOME%20Shell-46-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-GPL--3.0--or--later-green)
 ![Version](https://img.shields.io/badge/version-1.0.0-orange)
 
 ## ✨ Features
@@ -29,7 +29,7 @@ The extension intelligently switches between three states:
 | State | Trigger | Default Opacity | Description |
 |-------|---------|-----------------|-------------|
 | **Transparent** | No windows open | 0% | Clean, distraction-free desktop |
-| **Semi-Opaque** | Windows present | 80% | Balanced visibility and aesthetics |
+| **Semi-Opaque** | Windows present | 85% | Balanced visibility and aesthetics |
 | **Opaque** | Fullscreen/Overview | 100% | Full visibility when needed |
 
 ## 🚀 Installation
@@ -51,17 +51,17 @@ make install
 
 # Or copy manually
 mkdir -p ~/.local/share/gnome-shell/extensions/
-cp -r . ~/.local/share/gnome-shell/extensions/dynamic-panel@vmelonn/
+cp -r . ~/.local/share/gnome-shell/extensions/dynamic-panel@vmelonn.github.io/
 
 # Enable the extension
-gnome-extensions enable dynamic-panel@vmelonn
+gnome-extensions enable dynamic-panel@vmelonn.github.io
 ```
 
 ## ⚙️ Configuration
 
 Access settings through:
 - **GNOME Extensions app** → Dynamic Panel Transparency → ⚙️ Settings
-- **Command line**: `gnome-extensions prefs dynamic-panel@vmelonn`
+- **Command line**: `gnome-extensions prefs dynamic-panel@vmelonn.github.io`
 
 ### 🎨 Panel Transparency Settings
 
@@ -81,8 +81,8 @@ Access settings through:
 
 **Extension not working after GNOME update:**
 ```bash
-gnome-extensions disable dynamic-panel@vmelonn
-gnome-extensions enable dynamic-panel@vmelonn
+gnome-extensions disable dynamic-panel@vmelonn.github.io
+gnome-extensions enable dynamic-panel@vmelonn.github.io
 ```
 
 **Panel stuck in one state:**
@@ -126,8 +126,9 @@ dynamic-panel-transparency/
 ├── extension.js          # Main extension logic
 ├── prefs.js             # Settings UI
 ├── metadata.json        # Extension metadata
-├── schemas/             # Settings schema
+├── schemas/             # Settings schema files
 ├── screenshots/         # Documentation images
+├── LICENSE              # GPL-3.0-or-later license
 └── Makefile            # Build automation
 ```
 
@@ -144,7 +145,7 @@ Contributions are welcome! Here's how you can help:
 ### Development Setup
 ```bash
 # Fork the repo and clone your fork
-git clone https://github.com/vmelonn/dynamic-panel-transparency.git
+git clone https://github.com/yourusername/dynamic-panel-transparency.git
 cd dynamic-panel-transparency
 
 # Create a feature branch
@@ -163,9 +164,9 @@ git push origin feature/amazing-new-feature
 ## 🆘 Support
 
 - 📖 **Documentation**: Check this README and inline comments
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/reemostat/dynamic-panel-transparency/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/reemostat/dynamic-panel-transparency/discussions)
-- 📧 **Direct Contact**: [rayan.atif2@gmail.com]
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/vmelonn/dynamic-panel-transparency/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/vmelonn/dynamic-panel-transparency/discussions)
+- 📧 **Direct Contact**: rayan.atif2@gmail.com
 
 ## 📋 Compatibility
 
@@ -190,7 +191,9 @@ git push origin feature/amazing-new-feature
 
 ## 📜 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+GPL-3.0-or-later License - see [LICENSE](LICENSE) file for details.
+
+This extension is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
 ## 🙏 Acknowledgments
 
@@ -207,5 +210,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ---
 
 <p align="center">
-  <strong>I hope this satisfies some need.</strong><br>
+  <strong>Made with ❤️ for the GNOME community</strong><br>
+  <sub>If this extension improved your desktop experience, consider giving it a ⭐!</sub>
 </p>
