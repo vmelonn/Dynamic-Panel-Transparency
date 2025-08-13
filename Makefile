@@ -1,6 +1,6 @@
 # Makefile for Dynamic Panel Transparency GNOME Extension
 
-UUID = dynamic-panel@vmelonn
+UUID = dynamic-panel@vmelonn.github.io
 SCHEMA_DIR = schemas
 BUILD_DIR = build
 INSTALL_DIR = ~/.local/share/gnome-shell/extensions/$(UUID)
