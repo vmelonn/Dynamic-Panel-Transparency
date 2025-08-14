@@ -14,8 +14,13 @@ export default class DynamicPanelExtension extends Extension {
         this._currentState = null;
         this._settings = null;
         
-        // Initialize settings
+        // Initialize settings - let it fail gracefully if schema is missing
         this._settings = this.getSettings('org.gnome.shell.extensions.dynamic-panel');
+        if (this._settings) {
+            console.log('Dynamic Panel: Settings loaded successfully');
+        } else {
+            console.log('Dynamic Panel: Settings not available, using defaults');
+        }
         
         // Store original panel style
         this._originalStyle = Main.panel.get_style() || '';
@@ -137,7 +142,7 @@ export default class DynamicPanelExtension extends Extension {
 
     _disconnectSignals() {
         this._signalIds.forEach(([object, id]) => {
-            if (object && id) {
+            if (object && id && typeof object.disconnect === 'function') {
                 object.disconnect(id);
             }
         });
@@ -191,9 +196,26 @@ export default class DynamicPanelExtension extends Extension {
     }
 
     _log(message, ...args) {
-        if (this._settings?.get_boolean('debug-logging')) {
+        if (this._getSetting('debug-logging', false, 'boolean')) {
             console.log('Dynamic Panel:', message, ...args);
         }
+    }
+
+    _getSetting(key, defaultValue, type = 'int') {
+        // Defensive programming - check if settings exist and have the method
+        if (!this._settings || typeof this._settings.get_int !== 'function') {
+            return defaultValue;
+        }
+        
+        // Use appropriate getter based on type
+        const getter = type === 'boolean' ? 'get_boolean' : 'get_int';
+        
+        if (typeof this._settings[getter] !== 'function') {
+            return defaultValue;
+        }
+        
+        // Direct call without try-catch - let GObject handle errors
+        return this._settings[getter](key) ?? defaultValue;
     }
 
     _scheduleUpdate() {
@@ -255,7 +277,7 @@ export default class DynamicPanelExtension extends Extension {
         const hasFullscreen = visibleWindows.some(win => {
             const isFullscreen = win.is_fullscreen();
             const isMaximized = win.maximized_horizontally && win.maximized_vertically;
-            const maximizedOpaque = this._settings?.get_boolean('maximized-opaque') ?? false;
+            const maximizedOpaque = this._getSetting('maximized-opaque', false, 'boolean');
             
             if (isFullscreen) {
                 this._log(`Fullscreen window found: "${win.get_title()}"`);
@@ -305,30 +327,33 @@ export default class DynamicPanelExtension extends Extension {
         let panelStyle = '';
         let opacity, animationDuration;
 
-        // Get values from settings
-        animationDuration = this._settings?.get_int('animation-duration') ?? 300;
+        // Get values from settings with fallbacks
+        animationDuration = this._getSetting('animation-duration', 300);
 
         switch (state) {
             case 'transparent':
-                opacity = this._settings?.get_int('transparent-opacity') / 100 ?? 0;
+                opacity = this._getSetting('transparent-opacity', 0) / 100;
                 panelStyle = `background-color: rgba(45, 45, 45, ${opacity}) !important; transition: background-color ${animationDuration}ms ease;`;
                 break;
 
             case 'semi-opaque':
-                opacity = this._settings?.get_int('semi-opaque-opacity') / 100 ?? 0.85;
+                opacity = this._getSetting('semi-opaque-opacity', 85) / 100;
                 panelStyle = `background-color: rgba(45, 45, 45, ${opacity}) !important; transition: background-color ${animationDuration}ms ease;`;
                 break;
 
             case 'opaque':
             default:
-                opacity = this._settings?.get_int('opaque-opacity') / 100 ?? 1.0;
+                opacity = this._getSetting('opaque-opacity', 100) / 100;
                 panelStyle = `background-color: rgba(45, 45, 45, ${opacity}) !important; transition: background-color ${animationDuration}ms ease;`;
                 break;
         }
 
-        // Apply panel style
-        Main.panel.set_style(panelStyle);
-
-        this._log(`Successfully set to ${state} (${reason}) - Opacity: ${opacity}`);
+        // Apply panel style - defensive check for Main.panel
+        if (Main.panel && typeof Main.panel.set_style === 'function') {
+            Main.panel.set_style(panelStyle);
+            this._log(`Successfully set to ${state} (${reason}) - Opacity: ${opacity}`);
+        } else {
+            console.error('Dynamic Panel: Main.panel.set_style not available');
+        }
     }
 }
