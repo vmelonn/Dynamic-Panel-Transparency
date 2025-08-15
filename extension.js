@@ -1,4 +1,4 @@
-/* extension.js - Improved window detection for GNOME Shell 46 with real-time settings support */
+/* extension.js - Fixed animation duration handling for GNOME Shell 46 */
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Meta from 'gi://Meta';
@@ -10,10 +10,13 @@ export default class DynamicPanelExtension extends Extension {
         
         this._originalStyle = null;
         this._timeoutId = null;
+        this._animationTimeoutId = null;
         this._signalIds = [];
         this._settingsSignalIds = [];
         this._currentState = null;
+        this._currentOpacity = null;
         this._settings = null;
+        this._pendingStyleUpdate = false;
         
         // Initialize settings - let it fail gracefully if schema is missing
         this._settings = this.getSettings('org.gnome.shell.extensions.dynamic-panel');
@@ -45,10 +48,15 @@ export default class DynamicPanelExtension extends Extension {
     disable() {
         console.log('Dynamic Panel: Extension disabled');
         
-        // Clean up timeout - this is critical for EGO guidelines
+        // Clean up all timeouts
         if (this._timeoutId) {
             GLib.Source.remove(this._timeoutId);
             this._timeoutId = null;
+        }
+        
+        if (this._animationTimeoutId) {
+            GLib.Source.remove(this._animationTimeoutId);
+            this._animationTimeoutId = null;
         }
         
         // Disconnect all signals
@@ -69,23 +77,36 @@ export default class DynamicPanelExtension extends Extension {
     _connectSettingsSignals() {
         if (!this._settings) return;
         
-        // Listen for changes to all settings that affect appearance
-        const settingsKeys = [
+        // Listen for changes to opacity settings - these need immediate updates
+        const opacitySettings = [
             'transparent-opacity',
             'semi-opaque-opacity', 
-            'opaque-opacity',
-            'animation-duration',
-            'maximized-opaque'
+            'opaque-opacity'
         ];
         
-        settingsKeys.forEach(key => {
+        opacitySettings.forEach(key => {
             const signalId = this._settings.connect(`changed::${key}`, () => {
-                this._log(`Setting '${key}' changed, forcing panel update`);
-                // Force immediate update when settings change
+                this._log(`Opacity setting '${key}' changed, forcing panel update`);
+                // Force immediate update for opacity changes
                 this._forceUpdatePanelState();
             });
             this._settingsSignalIds.push(signalId);
         });
+        
+        // Handle animation duration changes specially
+        const animationSignalId = this._settings.connect('changed::animation-duration', () => {
+            this._log('Animation duration changed, updating smoothly');
+            // For animation duration changes, we need to be more careful
+            this._handleAnimationDurationChange();
+        });
+        this._settingsSignalIds.push(animationSignalId);
+        
+        // Handle maximized-opaque setting
+        const maximizedSignalId = this._settings.connect('changed::maximized-opaque', () => {
+            this._log('Maximized opaque setting changed, forcing panel update');
+            this._forceUpdatePanelState();
+        });
+        this._settingsSignalIds.push(maximizedSignalId);
         
         // Also listen to debug logging changes
         const debugSignalId = this._settings.connect('changed::debug-logging', () => {
@@ -94,6 +115,39 @@ export default class DynamicPanelExtension extends Extension {
         this._settingsSignalIds.push(debugSignalId);
         
         this._log(`Connected to ${this._settingsSignalIds.length} settings signals`);
+    }
+
+    _handleAnimationDurationChange() {
+        // When animation duration changes, we need to handle it carefully
+        // to avoid interrupting ongoing animations badly
+        
+        // Clear any pending animation timeout
+        if (this._animationTimeoutId) {
+            GLib.Source.remove(this._animationTimeoutId);
+            this._animationTimeoutId = null;
+        }
+        
+        // Get the new animation duration
+        const newDuration = this._getSetting('animation-duration', 300);
+        this._log(`Animation duration changed to: ${newDuration}ms`);
+        
+        if (newDuration === 0) {
+            // If animation is disabled, apply immediately
+            this._log('Animation disabled, applying immediate update');
+            this._forceUpdatePanelState();
+        } else {
+            // If we have a current state, smoothly transition to it with new duration
+            if (this._currentState) {
+                this._log(`Smoothly updating animation duration for current state: ${this._currentState}`);
+                
+                // Schedule a smooth update after a brief delay to let any current animation settle
+                this._animationTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+                    this._setPanelState(this._currentState, 'animation duration changed', true);
+                    this._animationTimeoutId = null;
+                    return GLib.SOURCE_REMOVE;
+                });
+            }
+        }
     }
 
     _disconnectSettingsSignals() {
@@ -114,7 +168,6 @@ export default class DynamicPanelExtension extends Extension {
         // Monitor window creation
         let id1 = global.display.connect('window-created', (display, win) => {
             this._log('Window created:', win.get_title());
-            // Connect to fullscreen changes for this specific window
             this._connectWindowSignals(win);
             this._scheduleUpdate();
         });
@@ -199,7 +252,6 @@ export default class DynamicPanelExtension extends Extension {
     }
 
     _connectExistingWindowSignals() {
-        // Connect to existing windows
         const workspace = global.workspace_manager.get_active_workspace();
         const windows = workspace.list_windows();
         
@@ -215,16 +267,13 @@ export default class DynamicPanelExtension extends Extension {
             return;
         }
 
-        // Mark this window as having signals connected
         win._dynamicPanelSignalsConnected = true;
 
-        // Connect to fullscreen property changes
         let id1 = win.connect('notify::fullscreen', () => {
             this._log(`Window "${win.get_title()}" fullscreen changed to: ${win.is_fullscreen()}`);
             this._scheduleUpdate();
         });
 
-        // Connect to window state changes (maximized, etc.)
         let id2 = win.connect('notify::maximized-horizontally', () => {
             this._log(`Window "${win.get_title()}" horizontal maximization changed`);
             this._scheduleUpdate();
@@ -235,7 +284,6 @@ export default class DynamicPanelExtension extends Extension {
             this._scheduleUpdate();
         });
 
-        // Store signal IDs for cleanup
         this._signalIds.push([win, id1]);
         this._signalIds.push([win, id2]);
         this._signalIds.push([win, id3]);
@@ -250,19 +298,16 @@ export default class DynamicPanelExtension extends Extension {
     }
 
     _getSetting(key, defaultValue, type = 'int') {
-        // Defensive programming - check if settings exist and have the method
         if (!this._settings || typeof this._settings.get_int !== 'function') {
             return defaultValue;
         }
         
-        // Use appropriate getter based on type
         const getter = type === 'boolean' ? 'get_boolean' : 'get_int';
         
         if (typeof this._settings[getter] !== 'function') {
             return defaultValue;
         }
         
-        // Direct call without try-catch - let GObject handle errors
         return this._settings[getter](key) ?? defaultValue;
     }
 
@@ -297,7 +342,6 @@ export default class DynamicPanelExtension extends Extension {
     _updatePanelState() {
         this._log('Updating panel state...');
         
-        // Don't update if overview is visible
         if (Main.overview.visible) {
             this._log('Overview is visible, skipping update');
             return;
@@ -308,15 +352,12 @@ export default class DynamicPanelExtension extends Extension {
         
         this._log(`Found ${windows.length} total windows`);
         
-        // Filter for normal application windows (including minimized ones for counting)
         const normalWindows = windows.filter(win => {
             const isNormal = win.get_window_type() === Meta.WindowType.NORMAL;
             const isVisible = !win.is_hidden();
             const isOnWorkspace = win.located_on_workspace(workspace);
             const isOnPrimaryMonitor = win.get_monitor() === Main.layoutManager.primaryIndex;
             const wmClass = win.get_wm_class();
-            
-            // Exclude system/background windows that shouldn't affect panel transparency
             const isSystemWindow = wmClass === 'gjs' || wmClass === 'gnome-shell';
             
             const result = isNormal && isVisible && isOnWorkspace && isOnPrimaryMonitor && !isSystemWindow;
@@ -330,12 +371,10 @@ export default class DynamicPanelExtension extends Extension {
             return result;
         });
 
-        // Filter for visible (non-minimized) normal windows
         const visibleWindows = normalWindows.filter(win => !win.minimized);
 
         this._log(`Found ${normalWindows.length} total normal windows, ${visibleWindows.length} visible`);
 
-        // Check for fullscreen windows among visible windows
         const hasFullscreen = visibleWindows.some(win => {
             const isFullscreen = win.is_fullscreen();
             const isMaximized = win.maximized_horizontally && win.maximized_vertically;
@@ -346,7 +385,6 @@ export default class DynamicPanelExtension extends Extension {
                 return true;
             }
             
-            // Check for maximized windows on primary monitor if setting is enabled
             if (maximizedOpaque && isMaximized && win.get_monitor() === Main.layoutManager.primaryIndex) {
                 this._log(`Maximized window on primary monitor: "${win.get_title()}" (making panel opaque)`);
                 return true;
@@ -355,7 +393,6 @@ export default class DynamicPanelExtension extends Extension {
             return false;
         });
 
-        // Additional check: Use global display fullscreen state as fallback
         const globalFullscreen = global.display.get_monitor_in_fullscreen(Main.layoutManager.primaryIndex);
         
         if (globalFullscreen) {
@@ -368,7 +405,6 @@ export default class DynamicPanelExtension extends Extension {
         } else if (visibleWindows.length > 0) {
             this._setPanelState('semi-opaque', `${visibleWindows.length} visible windows present`);
         } else {
-            // No visible windows (either no windows at all, or all are minimized)
             if (normalWindows.length > 0) {
                 this._setPanelState('transparent', `all ${normalWindows.length} windows are minimized`);
             } else {
@@ -377,45 +413,69 @@ export default class DynamicPanelExtension extends Extension {
         }
     }
 
-    _setPanelState(state, reason) {
-        // Always apply the style, even if state hasn't changed - this ensures settings changes are reflected
-        const stateChanged = this._currentState !== state;
-        
-        if (stateChanged) {
-            this._log(`Changing state from ${this._currentState} to ${state}`);
-            this._currentState = state;
-        } else {
-            this._log(`Refreshing ${state} state (settings may have changed)`);
-        }
+    _setPanelState(state, reason, forceUpdate = false) {
+        let opacity;
+        const animationDuration = this._getSetting('animation-duration', 300);
 
-        let panelStyle = '';
-        let opacity, animationDuration;
-
-        // Get values from settings with fallbacks
-        animationDuration = this._getSetting('animation-duration', 300);
-
+        // Determine target opacity based on state
         switch (state) {
             case 'transparent':
                 opacity = this._getSetting('transparent-opacity', 0) / 100;
-                panelStyle = `background-color: rgba(45, 45, 45, ${opacity}) !important; transition: background-color ${animationDuration}ms ease;`;
                 break;
-
             case 'semi-opaque':
                 opacity = this._getSetting('semi-opaque-opacity', 85) / 100;
-                panelStyle = `background-color: rgba(45, 45, 45, ${opacity}) !important; transition: background-color ${animationDuration}ms ease;`;
                 break;
-
             case 'opaque':
             default:
                 opacity = this._getSetting('opaque-opacity', 100) / 100;
-                panelStyle = `background-color: rgba(45, 45, 45, ${opacity}) !important; transition: background-color ${animationDuration}ms ease;`;
                 break;
         }
 
-        // Apply panel style - defensive check for Main.panel
+        // Check if we need to update
+        const stateChanged = this._currentState !== state;
+        const opacityChanged = this._currentOpacity !== opacity;
+        const shouldUpdate = stateChanged || opacityChanged || forceUpdate;
+
+        if (!shouldUpdate) {
+            this._log(`No change needed - State: ${state}, Opacity: ${opacity}`);
+            return;
+        }
+
+        // Update tracking variables
+        const previousState = this._currentState;
+        this._currentState = state;
+        this._currentOpacity = opacity;
+
+        // Log the change
+        if (stateChanged) {
+            this._log(`State changed: ${previousState} → ${state} (${reason})`);
+        } else if (opacityChanged) {
+            this._log(`Opacity changed for ${state} state: ${this._currentOpacity} → ${opacity}`);
+        } else if (forceUpdate) {
+            this._log(`Force updating ${state} state (${reason})`);
+        }
+
+        // Create the panel style with proper transition handling
+        let panelStyle;
+        
+        if (animationDuration === 0) {
+            // No animation - apply immediately
+            panelStyle = `background-color: rgba(45, 45, 45, ${opacity}) !important;`;
+            this._log(`Applied immediate style - Opacity: ${opacity}`);
+        } else {
+            // With animation - ensure smooth transition
+            panelStyle = `background-color: rgba(45, 45, 45, ${opacity}) !important; transition: background-color ${animationDuration}ms ease !important;`;
+            this._log(`Applied animated style - Opacity: ${opacity}, Duration: ${animationDuration}ms`);
+        }
+
+        // Apply panel style with error handling
         if (Main.panel && typeof Main.panel.set_style === 'function') {
-            Main.panel.set_style(panelStyle);
-            this._log(`Successfully set to ${state} (${reason}) - Opacity: ${opacity}`);
+            try {
+                Main.panel.set_style(panelStyle);
+                this._log(`✓ Successfully applied ${state} style`);
+            } catch (error) {
+                console.error('Dynamic Panel: Error applying panel style:', error);
+            }
         } else {
             console.error('Dynamic Panel: Main.panel.set_style not available');
         }
