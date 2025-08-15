@@ -112,7 +112,9 @@ export default class DynamicPanelExtension extends Extension {
     _disconnectSettingsSignals() {
         if (this._settings && this._settingsSignalIds.length > 0) {
             this._settingsSignalIds.forEach(signalId => {
-                this._settings.disconnect(signalId);
+                if (signalId) {
+                    this._settings.disconnect(signalId);
+                }
             });
             this._settingsSignalIds = [];
             console.log('Dynamic Panel: Settings signals disconnected');
@@ -430,6 +432,19 @@ export default class DynamicPanelExtension extends Extension {
 
         this._animationInProgress = true;
 
+        // Try Clutter animation first, fallback to manual animation if it fails
+        const currentOpacity = this._currentOpacity || 0;
+        
+        // Method 1: Try using Clutter.Actor.ease() for smooth animations
+        const clutter_success = this._tryClutterAnimation(targetOpacity, duration, currentOpacity);
+        
+        if (!clutter_success) {
+            console.warn('Dynamic Panel: Clutter animation failed, falling back to manual animation');
+            this._fallbackAnimation(targetOpacity, duration, currentOpacity);
+        }
+    }
+    
+    _tryClutterAnimation(targetOpacity, duration, currentOpacity) {
         // Use Clutter.Actor.ease() for smooth animations
         Main.panel.save_easing_state();
         Main.panel.set_easing_mode(Clutter.AnimationMode.EASE_OUT_QUAD);
@@ -442,7 +457,6 @@ export default class DynamicPanelExtension extends Extension {
             progress_mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
 
-        const currentOpacity = this._currentOpacity || 0;
         transition.set_from(currentOpacity);
         transition.set_to(targetOpacity);
 
@@ -466,5 +480,44 @@ export default class DynamicPanelExtension extends Extension {
         Main.panel.restore_easing_state();
 
         this._log(`Started Clutter transition animation`);
+        return true;
+    }
+
+    _fallbackAnimation(targetOpacity, duration, currentOpacity) {
+        // Fallback to manual animation with proper timing calculation
+        const startTime = Date.now();
+        const opacityDiff = targetOpacity - currentOpacity;
+        
+        // Use a more precise frame rate calculation
+        const targetFPS = 60;
+        const frameInterval = Math.max(1000 / targetFPS, 16); // At least 16ms per frame
+
+        const animationStep = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1.0);
+            
+            // Use easeOutQuad curve for smoother animation
+            const easedProgress = 1 - Math.pow(1 - progress, 2);
+            
+            const currentAnimatedOpacity = currentOpacity + (opacityDiff * easedProgress);
+            this._applyPanelStyle(currentAnimatedOpacity);
+            
+            if (progress < 1.0) {
+                // Continue animation with calculated frame interval
+                GLib.timeout_add(GLib.PRIORITY_DEFAULT, frameInterval, () => {
+                    animationStep();
+                    return GLib.SOURCE_REMOVE;
+                });
+            } else {
+                // Animation complete
+                this._animationInProgress = false;
+                this._applyPanelStyle(targetOpacity);
+                this._log(`Fallback animation completed - Final opacity: ${targetOpacity}`);
+            }
+        };
+
+        // Start the animation
+        animationStep();
+        this._log(`Started fallback animation with ${frameInterval}ms frame interval`);
     }
 }
