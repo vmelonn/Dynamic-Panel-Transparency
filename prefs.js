@@ -1,4 +1,4 @@
-/* prefs.js - Preferences window for GNOME Shell 46 with proper window controls */
+/* prefs.js - Preferences window for GNOME Shell 46 with animation duration setting removed */
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import Gtk from 'gi://Gtk';
 import Gio from 'gi://Gio';
@@ -9,7 +9,7 @@ export default class DynamicPanelPreferences extends ExtensionPreferences {
         console.log('Dynamic Panel: Loading preferences window');
         
         // Set up the window properly for GNOME 46
-        window.set_default_size(600, 700);
+        window.set_default_size(600, 650); // Reduced height since we removed one setting
         window.set_title('Dynamic Panel Transparency');
         
         // Create settings object - defensive programming
@@ -80,21 +80,6 @@ export default class DynamicPanelPreferences extends ExtensionPreferences {
         settings.bind('opaque-opacity', opaqueRow, 'value', Gio.SettingsBindFlags.DEFAULT);
         transparencyGroup.add(opaqueRow);
 
-        // Animation duration setting
-        const animationRow = new Adw.SpinRow({
-            title: 'Animation Duration',
-            subtitle: 'Duration of transparency transitions in milliseconds (0 = instant)',
-            adjustment: new Gtk.Adjustment({
-                lower: 0,
-                upper: 1000,
-                step_increment: 50,
-                page_increment: 100,
-                value: settings.get_int('animation-duration'),
-            }),
-        });
-        settings.bind('animation-duration', animationRow, 'value', Gio.SettingsBindFlags.DEFAULT);
-        transparencyGroup.add(animationRow);
-
         // Behavior Settings Group
         const behaviorGroup = new Adw.PreferencesGroup({
             title: 'Behavior Settings',
@@ -139,6 +124,7 @@ export default class DynamicPanelPreferences extends ExtensionPreferences {
                    '• <b>Transparent</b>: No windows open\n' +
                    '• <b>Semi-opaque</b>: Windows present\n' +
                    '• <b>Opaque</b>: Fullscreen or overview mode\n\n' +
+                   'Transitions between states use a smooth 300ms animation.\n\n' +
                    'Enable debug logging to troubleshoot issues via system logs:\n' +
                    '<tt>journalctl -f -o cat /usr/bin/gnome-shell | grep "Dynamic Panel"</tt>',
             use_markup: true,
