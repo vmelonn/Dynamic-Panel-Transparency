@@ -1,4 +1,4 @@
-/* extension.js - Fixed animation using Clutter.Actor.ease() for proper timing */
+/* extension.js - Fixed animation using Clutter.Actor.ease() with fixed timing */
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Meta from 'gi://Meta';
@@ -18,6 +18,9 @@ export default class DynamicPanelExtension extends Extension {
         this._currentOpacity = null;
         this._settings = null;
         this._animationInProgress = false;
+        
+        // Fixed animation duration (300ms)
+        this._animationDuration = 300;
         
         // Initialize settings
         this._settings = this.getSettings('org.gnome.shell.extensions.dynamic-panel');
@@ -81,12 +84,11 @@ export default class DynamicPanelExtension extends Extension {
     _connectSettingsSignals() {
         if (!this._settings) return;
         
-        // Listen for changes to all settings that affect appearance
+        // Listen for changes to opacity settings only (animation-duration removed)
         const settingsKeys = [
             'transparent-opacity',
             'semi-opaque-opacity', 
             'opaque-opacity',
-            'animation-duration',
             'maximized-opaque'
         ];
         
@@ -401,18 +403,9 @@ export default class DynamicPanelExtension extends Extension {
             this._log(`Opacity changed for ${state}: ${targetOpacity}`);
         }
 
-        // Get animation duration
-        const animationDuration = this._getSetting('animation-duration', 300);
-        
-        if (animationDuration === 0) {
-            // No animation - apply immediately
-            this._applyPanelStyle(targetOpacity);
-            this._log(`Applied immediate style - Opacity: ${targetOpacity}`);
-        } else {
-            // Use Clutter's built-in animation system for proper timing
-            this._animatePanelOpacity(targetOpacity, animationDuration);
-            this._log(`Started animation - Target opacity: ${targetOpacity}, Duration: ${animationDuration}ms`);
-        }
+        // Use fixed animation duration
+        this._animatePanelOpacity(targetOpacity, this._animationDuration);
+        this._log(`Started animation - Target opacity: ${targetOpacity}, Duration: ${this._animationDuration}ms`);
     }
 
     _applyPanelStyle(opacity) {
