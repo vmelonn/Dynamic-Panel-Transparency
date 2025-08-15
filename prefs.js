@@ -1,12 +1,16 @@
-/* prefs.js - Preferences window for the extension with window controls */
+/* prefs.js - Preferences window for GNOME Shell 46 with proper window controls */
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import Gtk from 'gi://Gtk';
 import Gio from 'gi://Gio';
-import GObject from 'gi://GObject';
+import Adw from 'gi://Adw';
 
 export default class DynamicPanelPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         console.log('Dynamic Panel: Loading preferences window');
+        
+        // Set up the window properly for GNOME 46
+        window.set_default_size(600, 700);
+        window.set_title('Dynamic Panel Transparency');
         
         // Create settings object - defensive programming
         const settings = this.getSettings('org.gnome.shell.extensions.dynamic-panel');
@@ -18,453 +22,171 @@ export default class DynamicPanelPreferences extends ExtensionPreferences {
         
         console.log('Dynamic Panel: Settings loaded successfully');
         
-        // Add window controls (minimize, maximize, close)
-        this._addWindowControls(window);
-        
-        // Create a scrolled window
-        const scrolled = new Gtk.ScrolledWindow({
-            hscrollbar_policy: Gtk.PolicyType.NEVER,
-            vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+        // Create main page using Adw.PreferencesPage (GNOME 46 standard)
+        const page = new Adw.PreferencesPage({
+            title: 'General',
+            icon_name: 'preferences-system-symbolic',
         });
         
-        // Create main box
-        const mainBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            margin_start: 24,
-            margin_end: 24,
-            margin_top: 24,
-            margin_bottom: 24,
-            spacing: 18,
+        // Add transparency settings group
+        const transparencyGroup = new Adw.PreferencesGroup({
+            title: 'Panel Transparency Settings',
+            description: 'Configure how the panel appears in different window states',
         });
-        
-        scrolled.set_child(mainBox);
-        window.set_content(scrolled);
-
-        // Title with version info
-        const titleLabel = new Gtk.Label({
-            label: '<b>Dynamic Panel Transparency Settings</b>\n<small>v1.0.0 - Intelligently adjusts panel transparency</small>',
-            use_markup: true,
-            halign: Gtk.Align.START,
-            justify: Gtk.Justification.CENTER,
-        });
-        mainBox.append(titleLabel);
-
-        // Add separator
-        const separator1 = new Gtk.Separator({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            margin_top: 6,
-            margin_bottom: 6,
-        });
-        mainBox.append(separator1);
-
-        // Transparency Settings Group
-        const transparencyGroup = this._createGroup(
-            'Panel Transparency Settings', 
-            'Configure how the panel appears in different window states'
-        );
-        mainBox.append(transparencyGroup);
+        page.add(transparencyGroup);
 
         // Transparent opacity setting (no windows)
-        const transparentBox = this._createSpinSetting(
-            'Transparent Opacity',
-            'Panel opacity when no windows are present (0 = fully transparent, 100 = opaque)',
-            settings,
-            'transparent-opacity',
-            0, 100, 5
-        );
-        if (transparentBox) transparencyGroup.append(transparentBox);
+        const transparentRow = new Adw.SpinRow({
+            title: 'Transparent Opacity',
+            subtitle: 'Panel opacity when no windows are present (0 = fully transparent, 100 = opaque)',
+            adjustment: new Gtk.Adjustment({
+                lower: 0,
+                upper: 100,
+                step_increment: 5,
+                page_increment: 10,
+                value: settings.get_int('transparent-opacity'),
+            }),
+        });
+        settings.bind('transparent-opacity', transparentRow, 'value', Gio.SettingsBindFlags.DEFAULT);
+        transparencyGroup.add(transparentRow);
 
         // Semi-opaque opacity setting (windows present)
-        const semiOpaqueBox = this._createSpinSetting(
-            'Semi-Opaque Opacity', 
-            'Panel opacity when windows are present but not fullscreen',
-            settings,
-            'semi-opaque-opacity',
-            0, 100, 5
-        );
-        if (semiOpaqueBox) transparencyGroup.append(semiOpaqueBox);
+        const semiOpaqueRow = new Adw.SpinRow({
+            title: 'Semi-Opaque Opacity',
+            subtitle: 'Panel opacity when windows are present but not fullscreen',
+            adjustment: new Gtk.Adjustment({
+                lower: 0,
+                upper: 100,
+                step_increment: 5,
+                page_increment: 10,
+                value: settings.get_int('semi-opaque-opacity'),
+            }),
+        });
+        settings.bind('semi-opaque-opacity', semiOpaqueRow, 'value', Gio.SettingsBindFlags.DEFAULT);
+        transparencyGroup.add(semiOpaqueRow);
 
         // Opaque opacity setting (fullscreen/overview)
-        const opaqueBox = this._createSpinSetting(
-            'Opaque Opacity',
-            'Panel opacity in fullscreen mode or activities overview',
-            settings,
-            'opaque-opacity', 
-            0, 100, 5
-        );
-        if (opaqueBox) transparencyGroup.append(opaqueBox);
+        const opaqueRow = new Adw.SpinRow({
+            title: 'Opaque Opacity',
+            subtitle: 'Panel opacity in fullscreen mode or activities overview',
+            adjustment: new Gtk.Adjustment({
+                lower: 0,
+                upper: 100,
+                step_increment: 5,
+                page_increment: 10,
+                value: settings.get_int('opaque-opacity'),
+            }),
+        });
+        settings.bind('opaque-opacity', opaqueRow, 'value', Gio.SettingsBindFlags.DEFAULT);
+        transparencyGroup.add(opaqueRow);
 
         // Animation duration setting
-        const animationBox = this._createSpinSetting(
-            'Animation Duration',
-            'Duration of transparency transitions in milliseconds (0 = instant)',
-            settings,
-            'animation-duration',
-            0, 1000, 50
-        );
-        if (animationBox) transparencyGroup.append(animationBox);
-
-        // Add separator
-        const separator2 = new Gtk.Separator({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            margin_top: 12,
-            margin_bottom: 6,
+        const animationRow = new Adw.SpinRow({
+            title: 'Animation Duration',
+            subtitle: 'Duration of transparency transitions in milliseconds (0 = instant)',
+            adjustment: new Gtk.Adjustment({
+                lower: 0,
+                upper: 1000,
+                step_increment: 50,
+                page_increment: 100,
+                value: settings.get_int('animation-duration'),
+            }),
         });
-        mainBox.append(separator2);
+        settings.bind('animation-duration', animationRow, 'value', Gio.SettingsBindFlags.DEFAULT);
+        transparencyGroup.add(animationRow);
 
         // Behavior Settings Group
-        const behaviorGroup = this._createGroup(
-            'Behavior Settings', 
-            'Configure how the extension responds to different window states'
-        );
-        mainBox.append(behaviorGroup);
+        const behaviorGroup = new Adw.PreferencesGroup({
+            title: 'Behavior Settings',
+            description: 'Configure how the extension responds to different window states',
+        });
+        page.add(behaviorGroup);
 
         // Maximized windows make panel opaque
-        const maximizedBox = this._createSwitchSetting(
-            'Maximized Windows Make Panel Opaque',
-            'When enabled, maximized windows will make the panel fully opaque (like fullscreen mode)',
-            settings,
-            'maximized-opaque'
-        );
-        if (maximizedBox) behaviorGroup.append(maximizedBox);
+        const maximizedRow = new Adw.SwitchRow({
+            title: 'Maximized Windows Make Panel Opaque',
+            subtitle: 'When enabled, maximized windows will make the panel fully opaque (like fullscreen mode)',
+            active: settings.get_boolean('maximized-opaque'),
+        });
+        settings.bind('maximized-opaque', maximizedRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        behaviorGroup.add(maximizedRow);
 
         // Enable debug logging
-        const debugBox = this._createSwitchSetting(
-            'Enable Debug Logging',
-            'Show detailed console output in system logs for troubleshooting issues',
-            settings,
-            'debug-logging'
-        );
-        if (debugBox) behaviorGroup.append(debugBox);
-
-        // Add separator
-        const separator3 = new Gtk.Separator({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            margin_top: 12,
-            margin_bottom: 6,
+        const debugRow = new Adw.SwitchRow({
+            title: 'Enable Debug Logging',
+            subtitle: 'Show detailed console output in system logs for troubleshooting issues',
+            active: settings.get_boolean('debug-logging'),
         });
-        mainBox.append(separator3);
+        settings.bind('debug-logging', debugRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        behaviorGroup.add(debugRow);
 
         // Help and info section
-        const infoGroup = this._createInfoSection();
-        mainBox.append(infoGroup);
-
-        console.log('Dynamic Panel: Preferences window setup completed');
-    }
-
-    _addWindowControls(window) {
-        // Create headerbar with window controls
-        const headerBar = new Gtk.HeaderBar({
-            show_title_buttons: true,
-            title_widget: new Gtk.Label({
-                label: 'Dynamic Panel Transparency',
-                css_classes: ['title'],
-            }),
+        const infoGroup = new Adw.PreferencesGroup({
+            title: 'About & Help',
         });
+        page.add(infoGroup);
 
-        // Create minimize button
-        const minimizeButton = new Gtk.Button({
-            icon_name: 'window-minimize-symbolic',
-            tooltip_text: 'Minimize',
-            css_classes: ['suggested-action'],
+        // Create info row with expandable content
+        const infoRow = new Adw.ExpanderRow({
+            title: 'How It Works',
+            subtitle: 'Learn about the extension behavior',
         });
-        minimizeButton.connect('clicked', () => {
-            if (window && typeof window.minimize === 'function') {
-                window.minimize();
-            }
-        });
+        infoGroup.add(infoRow);
 
-        // Create maximize/restore button
-        const maximizeButton = new Gtk.Button({
-            icon_name: window.maximized ? 'window-restore-symbolic' : 'window-maximize-symbolic',
-            tooltip_text: window.maximized ? 'Restore' : 'Maximize',
-            css_classes: ['suggested-action'],
-        });
-        maximizeButton.connect('clicked', () => {
-            if (!window) return;
-            
-            if (window.maximized) {
-                if (typeof window.unmaximize === 'function') {
-                    window.unmaximize();
-                    maximizeButton.icon_name = 'window-maximize-symbolic';
-                    maximizeButton.tooltip_text = 'Maximize';
-                }
-            } else {
-                if (typeof window.maximize === 'function') {
-                    window.maximize();
-                    maximizeButton.icon_name = 'window-restore-symbolic';
-                    maximizeButton.tooltip_text = 'Restore';
-                }
-            }
-        });
-
-        // Create close button
-        const closeButton = new Gtk.Button({
-            icon_name: 'window-close-symbolic',
-            tooltip_text: 'Close',
-            css_classes: ['destructive-action'],
-        });
-        closeButton.connect('clicked', () => {
-            if (window && typeof window.close === 'function') {
-                window.close();
-            }
-        });
-
-        // Add buttons to headerbar
-        headerBar.pack_start(minimizeButton);
-        headerBar.pack_start(maximizeButton);
-        headerBar.pack_end(closeButton);
-
-        // Set the headerbar
-        if (typeof window.set_titlebar === 'function') {
-            window.set_titlebar(headerBar);
-        }
-
-        // Connect to window state changes to update maximize button
-        const stateHandler = () => {
-            maximizeButton.icon_name = window.maximized ? 'window-restore-symbolic' : 'window-maximize-symbolic';
-            maximizeButton.tooltip_text = window.maximized ? 'Restore' : 'Maximize';
-        };
-        
-        if (window && typeof window.connect === 'function') {
-            window.connect('notify::maximized', stateHandler);
-        }
-    }
-
-    _createGroup(title, subtitle) {
-        const group = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
-            css_classes: ['card'],
-            margin_start: 6,
-            margin_end: 6,
-            margin_top: 6,
-            margin_bottom: 6,
-        });
-
-        // Group title
-        const titleLabel = new Gtk.Label({
-            label: `<b>${title}</b>`,
-            use_markup: true,
-            halign: Gtk.Align.START,
-            margin_start: 12,
-            margin_end: 12,
-            margin_top: 12,
-        });
-        group.append(titleLabel);
-
-        // Group subtitle
-        if (subtitle) {
-            const subtitleLabel = new Gtk.Label({
-                label: subtitle,
-                halign: Gtk.Align.START,
-                wrap: true,
-                css_classes: ['dim-label'],
-                margin_start: 12,
-                margin_end: 12,
-                margin_bottom: 6,
-            });
-            group.append(subtitleLabel);
-        }
-
-        return group;
-    }
-
-    _createSpinSetting(title, subtitle, settings, key, min, max, step) {
-        // Defensive check for settings and required methods
-        if (!settings || typeof settings.get_int !== 'function') {
-            console.error(`Dynamic Panel: Cannot create spin setting ${key} - settings not available`);
-            return null;
-        }
-
-        const box = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 12,
-            margin_start: 18,
-            margin_end: 18,
-            margin_top: 6,
-            margin_bottom: 6,
-        });
-
-        const labelBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            hexpand: true,
-            valign: Gtk.Align.CENTER,
-        });
-
-        const titleLabel = new Gtk.Label({
-            label: title,
-            halign: Gtk.Align.START,
-            css_classes: ['heading'],
-        });
-        labelBox.append(titleLabel);
-
-        if (subtitle) {
-            const subtitleLabel = new Gtk.Label({
-                label: subtitle,
-                halign: Gtk.Align.START,
-                wrap: true,
-                css_classes: ['dim-label', 'caption'],
-            });
-            labelBox.append(subtitleLabel);
-        }
-
-        // Get current value with fallback
-        let currentValue = min;
-        const getValue = settings.get_int(key);
-        if (typeof getValue === 'number' && getValue >= min && getValue <= max) {
-            currentValue = getValue;
-        }
-
-        const spinButton = new Gtk.SpinButton({
-            adjustment: new Gtk.Adjustment({
-                lower: min,
-                upper: max,
-                step_increment: step,
-                page_increment: step * 2,
-                value: currentValue,
-            }),
-            valign: Gtk.Align.CENTER,
-            width_chars: 5,
-        });
-
-        // Bind settings - defensive programming
-        if (typeof settings.bind === 'function') {
-            settings.bind(key, spinButton, 'value', Gio.SettingsBindFlags.DEFAULT);
-        } else {
-            console.error(`Dynamic Panel: Failed to bind setting ${key} - bind method not available`);
-            return null;
-        }
-
-        box.append(labelBox);
-        box.append(spinButton);
-
-        return box;
-    }
-
-    _createSwitchSetting(title, subtitle, settings, key) {
-        // Defensive check for settings and required methods
-        if (!settings || typeof settings.get_boolean !== 'function') {
-            console.error(`Dynamic Panel: Cannot create switch setting ${key} - settings not available`);
-            return null;
-        }
-
-        const box = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 12,
-            margin_start: 18,
-            margin_end: 18,
-            margin_top: 6,
-            margin_bottom: 6,
-        });
-
-        const labelBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            hexpand: true,
-            valign: Gtk.Align.CENTER,
-        });
-
-        const titleLabel = new Gtk.Label({
-            label: title,
-            halign: Gtk.Align.START,
-            css_classes: ['heading'],
-        });
-        labelBox.append(titleLabel);
-
-        if (subtitle) {
-            const subtitleLabel = new Gtk.Label({
-                label: subtitle,
-                halign: Gtk.Align.START,
-                wrap: true,
-                css_classes: ['dim-label', 'caption'],
-            });
-            labelBox.append(subtitleLabel);
-        }
-
-        // Get current value with fallback
-        const currentValue = settings.get_boolean(key) || false;
-
-        const switchWidget = new Gtk.Switch({
-            active: currentValue,
-            valign: Gtk.Align.CENTER,
-        });
-
-        // Bind settings - defensive programming
-        if (typeof settings.bind === 'function') {
-            settings.bind(key, switchWidget, 'active', Gio.SettingsBindFlags.DEFAULT);
-        } else {
-            console.error(`Dynamic Panel: Failed to bind setting ${key} - bind method not available`);
-            return null;
-        }
-
-        box.append(labelBox);
-        box.append(switchWidget);
-
-        return box;
-    }
-
-    _createInfoSection() {
-        const infoBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
-            css_classes: ['card'],
-            margin_start: 6,
-            margin_end: 6,
-        });
-
-        // Info title
-        const titleLabel = new Gtk.Label({
-            label: '<b>About & Help</b>',
-            use_markup: true,
-            halign: Gtk.Align.START,
-            margin_start: 12,
-            margin_top: 12,
-        });
-        infoBox.append(titleLabel);
-
-        // Info content
+        // Info content as a label inside the expander
         const infoLabel = new Gtk.Label({
             label: 'This extension automatically adjusts the panel transparency based on window activity:\n\n' +
                    '• <b>Transparent</b>: No windows open\n' +
                    '• <b>Semi-opaque</b>: Windows present\n' +
                    '• <b>Opaque</b>: Fullscreen or overview mode\n\n' +
-                   'Enable debug logging to troubleshoot issues via system logs.',
+                   'Enable debug logging to troubleshoot issues via system logs:\n' +
+                   '<tt>journalctl -f -o cat /usr/bin/gnome-shell | grep "Dynamic Panel"</tt>',
             use_markup: true,
-            halign: Gtk.Align.START,
             wrap: true,
-            css_classes: ['dim-label'],
+            halign: Gtk.Align.START,
             margin_start: 12,
             margin_end: 12,
+            margin_top: 6,
             margin_bottom: 12,
         });
-        infoBox.append(infoLabel);
+        infoRow.add_row(infoLabel);
 
-        return infoBox;
+        // Version info row
+        const versionRow = new Adw.ActionRow({
+            title: 'Version',
+            subtitle: '1.0.0 - For GNOME Shell 46',
+        });
+        
+        // Add GitHub link button
+        const githubButton = new Gtk.Button({
+            label: 'GitHub',
+            css_classes: ['pill'],
+            valign: Gtk.Align.CENTER,
+        });
+        githubButton.connect('clicked', () => {
+            Gtk.show_uri(window, 'https://github.com/vmelonn/dynamic-panel-transparency', Gtk.get_current_event_time());
+        });
+        versionRow.add_suffix(githubButton);
+        infoGroup.add(versionRow);
+
+        // Add the page to the window
+        window.add(page);
+        
+        console.log('Dynamic Panel: Preferences window setup completed');
     }
 
     _showErrorMessage(window, message) {
-        const errorBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
-            margin_start: 24,
-            margin_end: 24,
-            margin_top: 24,
-            margin_bottom: 24,
-            halign: Gtk.Align.CENTER,
-            valign: Gtk.Align.CENTER,
+        const page = new Adw.PreferencesPage();
+        
+        const errorGroup = new Adw.PreferencesGroup();
+        page.add(errorGroup);
+        
+        const errorRow = new Adw.ActionRow({
+            title: 'Extension Error',
+            subtitle: message,
         });
+        errorGroup.add(errorRow);
 
-        const errorLabel = new Gtk.Label({
-            label: `<b>Extension Error</b>\n\n${message}`,
-            use_markup: true,
-            halign: Gtk.Align.CENTER,
-            wrap: true,
-            css_classes: ['dim-label'],
-        });
-        errorBox.append(errorLabel);
-
-        if (window && typeof window.set_content === 'function') {
-            window.set_content(errorBox);
-        }
+        window.add(page);
     }
 }
