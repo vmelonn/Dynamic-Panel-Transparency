@@ -1,4 +1,4 @@
-/* extension.js - Improved window detection for GNOME Shell 46 with settings support */
+/* extension.js - Improved window detection for GNOME Shell 46 with real-time settings support */
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Meta from 'gi://Meta';
@@ -11,6 +11,7 @@ export default class DynamicPanelExtension extends Extension {
         this._originalStyle = null;
         this._timeoutId = null;
         this._signalIds = [];
+        this._settingsSignalIds = [];
         this._currentState = null;
         this._settings = null;
         
@@ -18,6 +19,8 @@ export default class DynamicPanelExtension extends Extension {
         this._settings = this.getSettings('org.gnome.shell.extensions.dynamic-panel');
         if (this._settings) {
             console.log('Dynamic Panel: Settings loaded successfully');
+            // Connect to settings changes for real-time updates
+            this._connectSettingsSignals();
         } else {
             console.log('Dynamic Panel: Settings not available, using defaults');
         }
@@ -50,6 +53,7 @@ export default class DynamicPanelExtension extends Extension {
         
         // Disconnect all signals
         this._disconnectSignals();
+        this._disconnectSettingsSignals();
         
         // Restore original panel style
         if (this._originalStyle !== null) {
@@ -60,6 +64,50 @@ export default class DynamicPanelExtension extends Extension {
         this._settings = null;
         
         console.log('Dynamic Panel: Cleanup completed');
+    }
+
+    _connectSettingsSignals() {
+        if (!this._settings) return;
+        
+        // Listen for changes to all settings that affect appearance
+        const settingsKeys = [
+            'transparent-opacity',
+            'semi-opaque-opacity', 
+            'opaque-opacity',
+            'animation-duration',
+            'maximized-opaque'
+        ];
+        
+        settingsKeys.forEach(key => {
+            const signalId = this._settings.connect(`changed::${key}`, () => {
+                this._log(`Setting '${key}' changed, forcing panel update`);
+                // Force immediate update when settings change
+                this._forceUpdatePanelState();
+            });
+            this._settingsSignalIds.push(signalId);
+        });
+        
+        // Also listen to debug logging changes
+        const debugSignalId = this._settings.connect('changed::debug-logging', () => {
+            this._log('Debug logging setting changed');
+        });
+        this._settingsSignalIds.push(debugSignalId);
+        
+        this._log(`Connected to ${this._settingsSignalIds.length} settings signals`);
+    }
+
+    _disconnectSettingsSignals() {
+        if (this._settings && this._settingsSignalIds.length > 0) {
+            this._settingsSignalIds.forEach(signalId => {
+                try {
+                    this._settings.disconnect(signalId);
+                } catch (e) {
+                    console.error('Dynamic Panel: Error disconnecting settings signal:', e);
+                }
+            });
+            this._settingsSignalIds = [];
+            console.log('Dynamic Panel: Settings signals disconnected');
+        }
     }
 
     _connectSignals() {
@@ -232,6 +280,20 @@ export default class DynamicPanelExtension extends Extension {
         });
     }
 
+    _forceUpdatePanelState() {
+        // Force immediate update without debouncing - used for settings changes
+        this._log('Force updating panel state due to settings change');
+        
+        // Clean up any scheduled updates
+        if (this._timeoutId) {
+            GLib.Source.remove(this._timeoutId);
+            this._timeoutId = null;
+        }
+        
+        // Update immediately
+        this._updatePanelState();
+    }
+
     _updatePanelState() {
         this._log('Updating panel state...');
         
@@ -316,13 +378,15 @@ export default class DynamicPanelExtension extends Extension {
     }
 
     _setPanelState(state, reason) {
-        if (this._currentState === state) {
-            this._log(`State already ${state}, skipping`);
-            return;
+        // Always apply the style, even if state hasn't changed - this ensures settings changes are reflected
+        const stateChanged = this._currentState !== state;
+        
+        if (stateChanged) {
+            this._log(`Changing state from ${this._currentState} to ${state}`);
+            this._currentState = state;
+        } else {
+            this._log(`Refreshing ${state} state (settings may have changed)`);
         }
-
-        this._log(`Changing state from ${this._currentState} to ${state}`);
-        this._currentState = state;
 
         let panelStyle = '';
         let opacity, animationDuration;
