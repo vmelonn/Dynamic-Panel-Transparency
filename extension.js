@@ -1,4 +1,4 @@
-/* extension.js - Fixed animation using Clutter.Actor.ease() with fixed timing */
+/* extension.js - Fixed animation using Clutter.Actor.ease() with fixed timing - Cleaned try/catch */
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Meta from 'gi://Meta';
@@ -112,11 +112,7 @@ export default class DynamicPanelExtension extends Extension {
     _disconnectSettingsSignals() {
         if (this._settings && this._settingsSignalIds.length > 0) {
             this._settingsSignalIds.forEach(signalId => {
-                try {
-                    this._settings.disconnect(signalId);
-                } catch (e) {
-                    console.error('Dynamic Panel: Error disconnecting settings signal:', e);
-                }
+                this._settings.disconnect(signalId);
             });
             this._settingsSignalIds = [];
             console.log('Dynamic Panel: Settings signals disconnected');
@@ -414,15 +410,11 @@ export default class DynamicPanelExtension extends Extension {
             return;
         }
 
-        // Apply style without transition
+        // Apply style
         const panelStyle = `background-color: rgba(45, 45, 45, ${opacity}) !important;`;
         
-        try {
-            Main.panel.set_style(panelStyle);
-            this._log(`✓ Applied panel style with opacity: ${opacity}`);
-        } catch (error) {
-            console.error('Dynamic Panel: Error applying panel style:', error);
-        }
+        Main.panel.set_style(panelStyle);
+        this._log(`✓ Applied panel style with opacity: ${opacity}`);
     }
 
     _animatePanelOpacity(targetOpacity, duration) {
@@ -438,88 +430,41 @@ export default class DynamicPanelExtension extends Extension {
 
         this._animationInProgress = true;
 
-        // Method 1: Try using Clutter.Actor.ease() for smooth animations
-        try {
-            // Set up easing parameters
-            Main.panel.save_easing_state();
-            Main.panel.set_easing_mode(Clutter.AnimationMode.EASE_OUT_QUAD);
-            Main.panel.set_easing_duration(duration);
+        // Use Clutter.Actor.ease() for smooth animations
+        Main.panel.save_easing_state();
+        Main.panel.set_easing_mode(Clutter.AnimationMode.EASE_OUT_QUAD);
+        Main.panel.set_easing_duration(duration);
 
-            // Create a custom property animation using a transition
-            const transition = new Clutter.PropertyTransition({
-                property_name: 'opacity-value', // Custom property name
-                duration: duration,
-                progress_mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            });
+        // Create a custom property animation using a transition
+        const transition = new Clutter.PropertyTransition({
+            property_name: 'opacity-value', // Custom property name
+            duration: duration,
+            progress_mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
 
-            const currentOpacity = this._currentOpacity || 0;
-            transition.set_from(currentOpacity);
-            transition.set_to(targetOpacity);
-
-            // Connect to the transition's new-frame signal to update the style
-            const signalId = transition.connect('new-frame', (trans, msecs) => {
-                const progress = trans.get_progress();
-                const currentAnimatedOpacity = currentOpacity + (targetOpacity - currentOpacity) * progress;
-                this._applyPanelStyle(currentAnimatedOpacity);
-            });
-
-            // Handle animation completion
-            transition.connect('completed', () => {
-                transition.disconnect(signalId);
-                this._animationInProgress = false;
-                this._applyPanelStyle(targetOpacity);
-                this._log(`Animation completed - Final opacity: ${targetOpacity}`);
-            });
-
-            // Add the transition to the panel
-            Main.panel.add_transition('panel-opacity-transition', transition);
-            Main.panel.restore_easing_state();
-
-            this._log(`Started Clutter transition animation`);
-            
-        } catch (error) {
-            console.warn('Dynamic Panel: Clutter animation failed, falling back to manual animation:', error);
-            Main.panel.restore_easing_state();
-            this._fallbackAnimation(targetOpacity, duration);
-        }
-    }
-
-    _fallbackAnimation(targetOpacity, duration) {
-        // Fallback to manual animation with proper timing calculation
-        const startTime = Date.now();
         const currentOpacity = this._currentOpacity || 0;
-        const opacityDiff = targetOpacity - currentOpacity;
-        
-        // Use a more precise frame rate calculation
-        const targetFPS = 60;
-        const frameInterval = Math.max(1000 / targetFPS, 16); // At least 16ms per frame
+        transition.set_from(currentOpacity);
+        transition.set_to(targetOpacity);
 
-        const animationStep = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1.0);
-            
-            // Use easeOutQuad curve for smoother animation
-            const easedProgress = 1 - Math.pow(1 - progress, 2);
-            
-            const currentAnimatedOpacity = currentOpacity + (opacityDiff * easedProgress);
+        // Connect to the transition's new-frame signal to update the style
+        const signalId = transition.connect('new-frame', (trans, msecs) => {
+            const progress = trans.get_progress();
+            const currentAnimatedOpacity = currentOpacity + (targetOpacity - currentOpacity) * progress;
             this._applyPanelStyle(currentAnimatedOpacity);
-            
-            if (progress < 1.0) {
-                // Continue animation with calculated frame interval
-                GLib.timeout_add(GLib.PRIORITY_DEFAULT, frameInterval, () => {
-                    animationStep();
-                    return GLib.SOURCE_REMOVE;
-                });
-            } else {
-                // Animation complete
-                this._animationInProgress = false;
-                this._applyPanelStyle(targetOpacity);
-                this._log(`Fallback animation completed - Final opacity: ${targetOpacity}`);
-            }
-        };
+        });
 
-        // Start the animation
-        animationStep();
-        this._log(`Started fallback animation with ${frameInterval}ms frame interval`);
+        // Handle animation completion
+        transition.connect('completed', () => {
+            transition.disconnect(signalId);
+            this._animationInProgress = false;
+            this._applyPanelStyle(targetOpacity);
+            this._log(`Animation completed - Final opacity: ${targetOpacity}`);
+        });
+
+        // Add the transition to the panel
+        Main.panel.add_transition('panel-opacity-transition', transition);
+        Main.panel.restore_easing_state();
+
+        this._log(`Started Clutter transition animation`);
     }
 }
