@@ -4,7 +4,7 @@
 
 ![GNOME Shell 46](https://img.shields.io/badge/GNOME%20Shell-46-blue)
 ![License](https://img.shields.io/badge/license-GPL--3.0--or--later-green)
-![Version](https://img.shields.io/badge/version-1.0.0-orange)
+![Version](https://img.shields.io/badge/version-1.0.2-orange)
 
 ## ✨ Features
 
