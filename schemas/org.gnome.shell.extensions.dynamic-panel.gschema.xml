@@ -19,12 +19,6 @@
       <summary>Opaque opacity</summary>
       <description>Opacity in fullscreen/overview (0-100)</description>
     </key>
-    <key name="animation-duration" type="i">
-      <default>300</default>
-      <range min="0" max="1000"/>
-      <summary>Animation duration</summary>
-      <description>Transition duration in milliseconds</description>
-    </key>
     <key name="maximized-opaque" type="b">
       <default>false</default>
       <summary>Maximized windows make panel opaque</summary>
