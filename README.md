@@ -68,8 +68,7 @@ Access settings through:
 - **Transparent Opacity** (0-100%) - How transparent when no windows are open
 - **Semi-Opaque Opacity** (0-100%) - Transparency level with windows present  
 - **Opaque Opacity** (0-100%) - Opacity in fullscreen or overview mode
-- **Animation Duration** (0-1000ms) - Speed of transparency transitions
-
+- 
 ### 🎯 Behavior Settings
 
 - **Maximized Windows Make Panel Opaque** - Treat maximized windows like fullscreen
